@@ -1,13 +1,13 @@
 ---
 name: python
-description: Write and run Python in this repo. uv is the only entrypoint — never pip, python, venv, conda, poetry, or requirements.txt. Encodes single-source-of-truth rules for Python — one home per fact in pyproject.toml, derive versions/schemas/CLIs instead of copying, idempotent convergence, illegal states unrepresentable via Literal/Enum/NewType/assert_never/pydantic, colocated truth, and CI gates for unavoidable drift. Use whenever generating, running, reviewing, packaging, or configuring Python code, adding a dependency, writing a script, setting up CI, or when the user mentions uv, ruff, ty, pyproject, pytest, PEP 723, or type checking.
+description: Python development standards — uv is the only entrypoint (never pip, python, venv, conda, poetry, or requirements.txt) and every fact has exactly one home. This skill should be used whenever writing, editing, running, testing, debugging, reviewing, refactoring, or packaging Python code; creating or changing any .py file, pyproject.toml, or uv.lock; adding, removing, or upgrading a dependency; writing a standalone or one-off script; or setting up Python CI. It covers uv, ruff, and ty commands, PEP 723 inline script metadata, dependency groups, deriving versions and schemas rather than copying them, idempotent convergence, and making illegal states unrepresentable with Literal, StrEnum, NewType, assert_never, and pydantic.
 ---
 
 # Python
 
 Two laws. Everything else follows.
 
-1. **uv runs everything.** There is no other way to invoke Python in this repo.
+1. **uv runs everything.** There is no other way to invoke Python.
 2. **Every fact has exactly one home.** Copies drift silently; derive instead.
 
 Law 2 is the single-source-of-truth philosophy. Each rule below names the duty it moves
@@ -20,6 +20,9 @@ Every claim below was verified against uv 0.11.32, ruff, and ty on 2026-07-26.
 ## 0. The uv mandate
 
 Requires **uv ≥ 0.11** (`uv check` and `uv audit` are recent). Pin it — see §7.
+Not installed? `brew install uv`, or `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+uv also manages interpreters (`uv python install`) — never install Python via brew or
+pyenv for a project; that's a second home for "which Python".
 
 | Never | Always | Why |
 |---|---|---|
@@ -77,6 +80,34 @@ Never hand-edit the block — `uv add --script` owns it.
 
 The dependency lives next to the code that imports it (§6). No README line saying
 "first pip install httpx" — that instruction is a duty parked on a human, and it rots.
+
+### Landing in a project that isn't on uv yet
+
+Check this **before** writing code. Migrate first, then work.
+
+| Found | Move |
+|---|---|
+| `requirements.txt` | `uv init --bare` → `uv add -r requirements.txt` → delete the txt |
+| Poetry (`[tool.poetry]`) | `uvx migrate-to-uv` — rewrites to PEP 621 `[project]` |
+| pipenv / pdm | `uvx migrate-to-uv` |
+| loose scripts, no project | PEP 723 header + `uv run script.py` |
+| already on uv | nothing to do |
+
+Never bolt uv on beside a live Poetry or pip setup. Two dependency lists is precisely the
+failure this skill exists to prevent — and the migration is a two-minute command.
+
+If migrating is genuinely out of scope right now, **say so explicitly** and follow the
+project's existing tooling consistently. Do not half-convert.
+
+### Precedence
+
+These rules govern **new** code. When editing an existing file, match its surrounding
+style — do not reformat, re-type, or restructure a module as a drive-by; that buries the
+actual change in noise.
+
+But never *add* a new violation to an old file: no fresh `pip install`, no new
+`requirements.txt` entry, no bare `str` where the set is closed. Leave existing ones alone
+unless you were asked to clean them up.
 
 ---
 
